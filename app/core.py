@@ -1,6 +1,9 @@
 """Your code. One stub per milestone; build them in order and keep each one small."""
 
+import torch
 from app.corpus import load_raw_corpus, preprocess_text, split_corpus, get_corpus_stats
+from app.bpe import BPETokenizer
+from app.embeddings import StoryEmbeddings
 
 
 # --- Milestone 1: Assemble a small corpus of text from public domain adventure stories or fantasy novels.
@@ -22,8 +25,27 @@ def milestone_1(corpus_path=None):
 
 # --- Milestone 2: Implement the byte-pair tokenizer and generate embeddings from the story text.
 # Hint: BPE & Embeddings: Apply byte-pair encoding and create token embeddings.
-def milestone_2():  # TODO(milestone 2)
-    raise NotImplementedError("TODO(milestone 2)")
+def milestone_2(sample_text: str | None = None, num_merges: int = 20, n_embd: int = 32, block_size: int = 16):
+    if sample_text is None:
+        sample_text = "You stand before the obsidian archway of the Sunken Citadel. A cold draft carries the scent of damp moss."
+    tokenizer = BPETokenizer().train(sample_text, num_merges=num_merges)
+    token_ids = tokenizer.encode(sample_text)
+    decoded_text = tokenizer.decode(token_ids)
+
+    # Generate embeddings from the tokenized story text
+    eff_block_size = max(block_size, len(token_ids[:block_size]))
+    embeddings = StoryEmbeddings(vocab_size=tokenizer.vocab_size, n_embd=n_embd, block_size=eff_block_size)
+    input_tensor = torch.tensor([token_ids[:eff_block_size]], dtype=torch.long)
+    embedded_vectors = embeddings(input_tensor)
+
+    return {
+        "tokenizer": tokenizer,
+        "token_ids": token_ids,
+        "decoded_text": decoded_text,
+        "vocab_size": tokenizer.vocab_size,
+        "embeddings": embeddings,
+        "embedded_shape": tuple(embedded_vectors.shape),
+    }
 
 
 # --- Milestone 3: Build the causal self-attention mechanism and assemble the transformer block.

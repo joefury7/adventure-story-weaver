@@ -28,9 +28,23 @@ def test_milestone_1():
 
 
 # Milestone 2: Implement the byte-pair tokenizer and generate embeddings from the story text.
-@pytest.mark.skip(reason="remove this line when you start milestone 2")
 def test_milestone_2():
-    raise NotImplementedError("write the test for milestone 2")
+    sample = "You draw your steel broadsword and tread cautiously across the creaking floorboards."
+    res = milestone_2(sample_text=sample, num_merges=15, n_embd=32, block_size=16)
+
+    assert "tokenizer" in res
+    assert "token_ids" in res
+    assert "decoded_text" in res
+    assert "embeddings" in res
+    assert "embedded_shape" in res
+
+    # BPE round-trip check
+    assert res["decoded_text"] == sample
+    # Encoded sequence should be strictly shorter than raw character length due to merges
+    assert len(res["token_ids"]) < len(sample)
+    # Embedding tensor shape should be (1, block_size, 32)
+    assert res["embedded_shape"] == (1, 16, 32)
+
 
 
 # Milestone 3: Build the causal self-attention mechanism and assemble the transformer block.
