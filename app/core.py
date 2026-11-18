@@ -121,10 +121,28 @@ def milestone_4(max_iters: int = 10, batch_size: int = 8, n_embd: int = 32, bloc
 
 
 
+from app.generation import StoryWeaver, generate_tokens
+
+
 # --- Milestone 5: Implement a text generation feature that creates coherent story continuations.
 # Hint: Text Generation: Implement greedy or sampling-based text generation.
-def milestone_5():  # TODO(milestone 5)
-    raise NotImplementedError("TODO(milestone 5)")
+def milestone_5(prompt: str = "You stand before the obsidian archway", max_new_tokens: int = 40, temperature: float = 0.8):
+    m4_res = milestone_4(max_iters=5, batch_size=4, n_embd=32, block_size=32)
+    model = m4_res["model"]
+    tokenizer = m4_res["tokenizer"]
+
+    weaver = StoryWeaver(model, tokenizer)
+    greedy_story = weaver.weave(prompt, max_new_tokens=max_new_tokens, greedy=True)
+    sampled_story = weaver.weave(prompt, max_new_tokens=max_new_tokens, temperature=temperature, top_k=10, top_p=0.9)
+
+    return {
+        "weaver": weaver,
+        "prompt": prompt,
+        "greedy_continuation": greedy_story,
+        "sampled_continuation": sampled_story,
+        "tokens_generated": max_new_tokens,
+    }
+
 
 
 # --- Milestone 6: Design a CLI where users can input a story prompt and receive generated segments.

@@ -97,9 +97,22 @@ def test_milestone_4(tmp_path):
 
 
 # Milestone 5: Implement a text generation feature that creates coherent story continuations.
-@pytest.mark.skip(reason="remove this line when you start milestone 5")
 def test_milestone_5():
-    raise NotImplementedError("write the test for milestone 5")
+    prompt = "You stand before the obsidian archway"
+    res = milestone_5(prompt=prompt, max_new_tokens=25, temperature=0.7)
+
+    assert "weaver" in res
+    assert "greedy_continuation" in res
+    assert "sampled_continuation" in res
+
+    # The generated story must contain the original prompt
+    assert prompt in res["greedy_continuation"]
+    assert prompt in res["sampled_continuation"]
+
+    # The generated text must extend beyond the prompt
+    assert len(res["greedy_continuation"]) > len(prompt)
+    assert len(res["sampled_continuation"]) > len(prompt)
+
 
 
 # Milestone 6: Design a CLI where users can input a story prompt and receive generated segments.
