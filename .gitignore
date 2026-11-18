@@ -7,7 +7,9 @@ __pycache__/
 .venv/
 .pytest_cache/
 
-# Local data
+# Local data & model checkpoints
 data/*
 !data/adventure_corpus.txt
+!data/bpe_vocab.json
+!data/story_gpt.pt
 *.db

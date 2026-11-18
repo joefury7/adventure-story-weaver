@@ -116,7 +116,13 @@ def test_milestone_5():
 
 
 # Milestone 6: Design a CLI where users can input a story prompt and receive generated segments.
-@pytest.mark.skip(reason="remove this line when you start milestone 6")
 def test_milestone_6():
-    raise NotImplementedError("write the test for milestone 6")
+    prompt = "You step into the darkened tunnel"
+    res = milestone_6(prompt=prompt, max_tokens=25)
+
+    assert "output" in res
+    assert res["success"] is True
+    assert "ADVENTURE STORY WEAVER" in res["output"]
+    assert prompt in res["output"]
+
 

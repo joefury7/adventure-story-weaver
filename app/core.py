@@ -147,5 +147,23 @@ def milestone_5(prompt: str = "You stand before the obsidian archway", max_new_t
 
 # --- Milestone 6: Design a CLI where users can input a story prompt and receive generated segments.
 # Hint: CLI Development: Create a simple command-line interface for user interaction.
-def milestone_6():  # TODO(milestone 6)
-    raise NotImplementedError("TODO(milestone 6)")
+def milestone_6(prompt: str = "You enter the cavern", max_tokens: int = 30):
+    import io
+    import sys
+    from app.cli import main
+
+    captured_out = io.StringIO()
+    orig_stdout = sys.stdout
+    sys.stdout = captured_out
+    try:
+        main(["generate", "--prompt", prompt, "--max-tokens", str(max_tokens), "--greedy"])
+    finally:
+        sys.stdout = orig_stdout
+
+    output_text = captured_out.getvalue()
+    return {
+        "output": output_text,
+        "prompt": prompt,
+        "success": bool(len(output_text) > 0 and prompt in output_text),
+    }
+
