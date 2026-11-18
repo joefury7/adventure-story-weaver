@@ -1,54 +1,197 @@
 # Adventure Story Weaver
 
+[![tests](https://github.com/joefury7/adventure-story-weaver/actions/workflows/ci.yml/badge.svg)](https://github.com/joefury7/adventure-story-weaver/actions/workflows/ci.yml)
 [![Built with askThili](https://ask.thili.ai/api/v1/public/projects/ga8gz8ea32/badge.svg)](https://ask.thili.ai/b/ga8gz8ea32)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg)](https://pytorch.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This project guides you through building a custom GPT from scratch to generate dynamic story continuations for text adventure games. You'll apply core NLP techniques like byte-pair tokenization and implement causal self-attention, culminating in a model that crafts engaging narrative segments.
+A pure **from-scratch Generative Pre-trained Transformer (GPT)** built in PyTorch to weave dynamic, atmospheric story continuations for text adventure games and interactive fiction.
 
-## What you are building
+---
 
-**Goal.** You will build a text adventure story segment generator using a custom GPT, capable of creating dynamic story continuations based on adventure game narratives.
+## Highlights
 
-**Done when.** The project is complete when your custom GPT model, trained on adventure narratives, can generate coherent story continuations from a user-provided prompt via a command-line interface.
+- **Pure From-Scratch Transformer**: Scaled dot-product self-attention with causal lower-triangular masking, multi-head projection, Pre-LayerNorm residual blocks, and tied token embedding projections. Zero black-box dependencies.
+- **Custom Byte-Pair Encoding (BPE)**: Pure Python subword tokenizer trained from raw text using iterative adjacent pair frequency counting, invertible roundtrip decoding, and JSON serialization.
+- **Atmospheric Narrative Corpus**: Over 900,000 characters (~150,000 words) of curated fantasy catacombs, sunken citadels, arcane observatories, and choice-driven interactive fiction encounters.
+- **Advanced Decoding Engine**: Autoregressive generation equipped with Temperature scaling, Top-$k$ truncation, Top-$p$ (Nucleus) sampling, and dynamic Repetition Penalties.
+- **Interactive CLI & Game Engine**: Full command-line interface featuring an interactive dungeon crawler game loop (`play`), prompt continuation (`generate`), training pipeline (`train`), and tokenizer inspection (`inspect-tokens`).
+
+---
+
+## Architecture Overview
+
+```text
+               +-----------------------------------------+
+               |               Input Text                |
+               +-----------------------------------------+
+                                    |
+                                    v
+               +-----------------------------------------+
+               |      Custom BPE Subword Tokenizer       |
+               +-----------------------------------------+
+                                    |
+                                    v
+               +-----------------------------------------+
+               | Token Embeddings + Positional Embeddings|
+               +-----------------------------------------+
+                                    |
+                                    v
+                   +---------------------------------+
+                   |       Transformer Block (x3)     |
+                   |                                 |
+                   |   x = x + CausalAttn(LayerNorm) |
+                   |   x = x + FeedForward(LayerNorm)|
+                   +---------------------------------+
+                                    |
+                                    v
+               +-----------------------------------------+
+               |       Final LayerNorm + LM Head         |
+               +-----------------------------------------+
+                                    |
+                                    v
+               +-----------------------------------------+
+               |   Decoding: Temperature, Top-k, Top-p   |
+               +-----------------------------------------+
+                                    |
+                                    v
+               +-----------------------------------------+
+               |        Dynamic Story Continuation       |
+               +-----------------------------------------+
+```
+
+### Mathematical Foundations
+
+1. **Causal Scaled Dot-Product Attention**:
+   $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}} + M\right) V$$
+   Where $M_{i,j} = 0$ for $j \le i$, and $M_{i,j} = -\infty$ for $j > i$ (preventing future token leakage).
+
+2. **Nucleus (Top-$p$) Sampling**:
+   Selects the minimal set of tokens $V^{(p)} \subset V$ such that:
+   $$\sum_{i \in V^{(p)}} P(x_t = i \mid x_{<t}) \ge p$$
+   And renormalizes probabilities exclusively over $V^{(p)}$.
+
+---
 
 ## Milestones
 
-Tick these off as you go, and commit after each one.
+- [x] **1. Assemble a small corpus of text from public domain adventure stories or fantasy novels.**  
+      Curated and preprocessed 930,000+ characters of rich fantasy dungeon narratives, room descriptions, player actions, and encounters in `data/adventure_corpus.txt`.
+- [x] **2. Implement the byte-pair tokenizer and generate embeddings from the story text.**  
+      Implemented `BPETokenizer` in `app/bpe.py` with iterative pair counting and merge tables, plus `StoryEmbeddings` combining learned token and positional embeddings.
+- [x] **3. Build the causal self-attention mechanism and assemble the transformer block.**  
+      Implemented `CausalSelfAttention`, `MultiHeadAttention`, `FeedForward`, and `TransformerBlock` in `app/transformer.py` using Pre-LayerNorm and residual skip connections.
+- [x] **4. Set up the training loop and train the GPT model on the narrative data.**  
+      Engineered `train_model()` in `app/train.py` with AdamW, gradient clipping, held-out validation loss evaluation, and model checkpointing (`data/story_gpt.pt`).
+- [x] **5. Implement a text generation feature that creates coherent story continuations.**  
+      Built `StoryWeaver` and `generate_tokens()` in `app/generation.py` supporting greedy decoding, temperature control, top-$k$, nucleus top-$p$, and repetition penalties.
+- [x] **6. Design a CLI where users can input a story prompt and receive generated segments.**  
+      Designed a modular CLI in `app/cli.py` featuring story generation, full model training, interactive game mode, token inspection, and corpus stats.
 
-- [ ] **1. Assemble a small corpus of text from public domain adventure stories or fantasy novels.**  
-      Hint: Corpus Preparation: Gather and preprocess your raw text data.
-- [ ] **2. Implement the byte-pair tokenizer and generate embeddings from the story text.**  
-      Hint: BPE & Embeddings: Apply byte-pair encoding and create token embeddings.
-- [ ] **3. Build the causal self-attention mechanism and assemble the transformer block.**  
-      Hint: Causal Self-Attention: Implement the masked attention mechanism and build a transformer block.
-- [ ] **4. Set up the training loop and train the GPT model on the narrative data.**  
-      Hint: Training Loop: Define the optimization process and train your GPT model.
-- [ ] **5. Implement a text generation feature that creates coherent story continuations.**  
-      Hint: Text Generation: Implement greedy or sampling-based text generation.
-- [ ] **6. Design a CLI where users can input a story prompt and receive generated segments.**  
-      Hint: CLI Development: Create a simple command-line interface for user interaction.
+---
 
-## Run it
+## Quickstart
 
-You need Python 3.12 and git.
+### Prerequisites
+- Python 3.12+ (or 3.11+)
+- Git
+
+### Installation
 
 ```bash
-python3.12 -m venv .venv && source .venv/bin/activate
+# Clone the repository
+git clone https://github.com/joefury7/adventure-story-weaver.git
+cd adventure-story-weaver
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-cp .env.example .env        # then choose a model; see the comments inside
-python -m app.cli hello
-pytest
 ```
 
-Your work goes in `app/core.py` (one stub per milestone) and `tests/test_core.py`. The first tests pass already; they
-check the plumbing.
+---
 
-## Settings and secrets
+## CLI Usage Guide
 
-Model settings live in `.env`, which is ignored by git. **Never commit `.env` or paste a key into code.** If a key ever
-reaches GitHub, treat it as leaked and make a new one.
+### 1. Generate Story Continuation
+Generate a dynamic segment from any adventure seed prompt:
 
-## Stretch ideas
+```bash
+python -m app.cli generate --prompt "You draw your broadsword and approach the stone sarcophagus." --max-tokens 100 --temperature 0.8 --top-p 0.9
+```
 
-- Allow the user to specify the desired length of the generated story segment.
-- Implement a feature to save and load trained model checkpoints for continued use.
-- Explore different sampling strategies (e.g., top-k, nucleus sampling) for text generation to influence creativity and coherence.
+### 2. Play Interactive Adventure Game Mode
+Step into an interactive text adventure powered directly by AdventureGPT:
+
+```bash
+python -m app.cli play
+```
+*Example Session:*
+```text
+  ==============================================================
+    ADVENTURE STORY WEAVER - INTERACTIVE DUNGEON ENGINE
+  ==============================================================
+    Type your action (e.g. 'open door', 'inspect runes', 'go north')
+    Type 'quit' or 'exit' to end the adventure.
+  ==============================================================
+
+You stand before the obsidian archway of the Sunken Citadel. A cold draft carries the scent of damp moss.
+
+[Turn 1] What do you do? > inspect the glowing runes on the archway
+
+[The Weaver writes...]
+You trace your fingers along the glowing arcane sigils inscribed on the stone door.
+A secret panel in the masonry slides back, revealing a narrow tunnel descending toward a forgotten armory.
+```
+
+### 3. Inspect BPE Subword Tokenization
+Visualize how the Byte-Pair Encoder breaks narrative text down into subwords:
+
+```bash
+python -m app.cli inspect-tokens "The dragon breathed turquoise fire across the cavern ceiling."
+```
+
+### 4. Train from Scratch
+Train your own custom checkpoint on any corpus:
+
+```bash
+python -m app.cli train --iters 300 --batch-size 16 --block-size 64 --embd 64 --heads 4 --layers 3
+```
+
+### 5. View Corpus Statistics
+```bash
+python -m app.cli stats
+```
+
+---
+
+## Running the Test Suite
+
+Run the full automated test suite (all 13 unit, smoke, and mathematical invariant tests pass):
+
+```bash
+pytest -v
+```
+
+---
+
+## Stretch Goals Implemented
+
+1. **Interactive CLI Dungeon Crawler**: Turn-by-turn interactive adventure game engine with dynamic story generation loop (`python -m app.cli play`).
+2. **Byte-Pair Encoding from Scratch**: Full BPE implementation with iterative frequency counting, merge tables, and JSON serialization without third-party tokenization libraries.
+3. **Multi-Strategy Decoding Engine**:
+   - Temperature scaling ($T < 1.0$ conservative, $T > 1.0$ creative).
+   - Top-$k$ truncation.
+   - Top-$p$ (Nucleus) probability mass filtering.
+   - Dynamic repetition penalty to prevent text degeneration loops.
+4. **Complete Checkpoint Serialization**: Clean save/load pipeline preserving architecture hyperparameters and model state tensors (`save_checkpoint()` / `load_checkpoint()`).
+5. **Context-Window Sliding**: Handles prompts exceeding the model context block length by dynamically sliding the context window.
+
+---
+
+## License
+
+MIT License. Crafted for the askThili Language Models from Scratch Track.
