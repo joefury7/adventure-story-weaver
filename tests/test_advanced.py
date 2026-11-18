@@ -90,3 +90,15 @@ def test_cli_subcommands(capsys):
     out_stats = capsys.readouterr().out
     assert "Adventure Corpus Telemetry" in out_stats
     assert "Character Count" in out_stats
+
+    # Test 'history'
+    main(["history"])
+    out_hist = capsys.readouterr().out
+    assert "ADVENTURE STORY WEAVER - SAVED JOURNAL" in out_hist
+
+    # Test 'compare'
+    main(["compare", "--prompt", "You see a glowing chest", "--max-tokens", "20"])
+    out_comp = capsys.readouterr().out
+    assert "MODEL COMPARISON" in out_comp
+    assert "From-Scratch AdventureGPT" in out_comp
+

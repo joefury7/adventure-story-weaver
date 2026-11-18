@@ -5,6 +5,8 @@ Provides commands for:
 - generate: Generate dynamic story continuations from user prompts
 - train: Train custom GPT from scratch on narrative corpus
 - play: Interactive text-adventure game engine powered by AdventureGPT
+- history: Review past generated story segments from the local journal store
+- compare: Compare from-scratch AdventureGPT completions against an LLM baseline
 - inspect-tokens: Visualize Byte-Pair Encoding subword segmentation
 - stats: Display corpus and architecture telemetry
 """
@@ -13,12 +15,15 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 import torch
 
 from app.bpe import BPETokenizer
 from app.corpus import load_raw_corpus, preprocess_text, split_corpus, get_corpus_stats
 from app.generation import StoryWeaver
+from app.storage import Store
+from app import llm
 from app.transformer import AdventureGPT
 from app.train import train_model, save_checkpoint, load_checkpoint
 
@@ -66,6 +71,19 @@ def cmd_generate(args: argparse.Namespace) -> None:
         repetition_penalty=args.repetition_penalty,
         greedy=args.greedy,
     )
+
+    # Persist generated story to the local journal store
+    try:
+        store = Store()
+        entry_key = f"story_{int(time.time() * 1000)}"
+        store.put(entry_key, {
+            "prompt": prompt,
+            "continuation": continuation.strip(),
+            "temperature": args.temperature,
+            "max_tokens": args.max_tokens,
+        })
+    except Exception:
+        pass
 
     print("\n" + "=" * 60)
     print("           ADVENTURE STORY WEAVER - CONTINUATION")
@@ -116,6 +134,7 @@ def cmd_play(args: argparse.Namespace) -> None:
     """Interactive text adventure session."""
     model, tokenizer = load_or_init_pipeline(args.checkpoint, args.vocab)
     weaver = StoryWeaver(model, tokenizer)
+    store = Store()
 
     banner = r"""
   ==============================================================
@@ -131,6 +150,7 @@ def cmd_play(args: argparse.Namespace) -> None:
     print(story_context)
 
     turn = 1
+    session_turns = []
     while True:
         try:
             action = input(f"\n[Turn {turn}] What do you do? > ").strip()
@@ -156,9 +176,60 @@ def cmd_play(args: argparse.Namespace) -> None:
             new_segment = "You proceed forward cautiously into the darkened corridor."
 
         print(f"\n{new_segment}\n")
-        # Keep rolling context
+        session_turns.append({"turn": turn, "action": action, "result": new_segment})
         story_context = f"{action}\n{new_segment}"
         turn += 1
+
+    if session_turns:
+        store.put(f"session_{int(time.time())}", session_turns)
+
+
+def cmd_history(args: argparse.Namespace) -> None:
+    """View saved adventure history from the persistent storage."""
+    store = Store()
+    entries = store.all()
+    print("\n" + "=" * 60)
+    print("           ADVENTURE STORY WEAVER - SAVED JOURNAL")
+    print("=" * 60)
+    if not entries:
+        print("No saved stories in the journal yet. Run 'generate' or 'play' first.")
+    else:
+        for k, v in list(entries.items())[-5:]:
+            if isinstance(v, dict) and "prompt" in v:
+                print(f"[{k}]")
+                print(f"  Prompt : {v.get('prompt')}")
+                print(f"  Story  : {v.get('continuation')[:120]}...\n")
+            elif isinstance(v, list):
+                print(f"[{k}] (Interactive Game Session with {len(v)} turns)\n")
+    print("=" * 60 + "\n")
+
+
+def cmd_compare(args: argparse.Namespace) -> None:
+    """Compare from-scratch AdventureGPT against an external LLM baseline."""
+    print("\n" + "=" * 60)
+    print("     MODEL COMPARISON: From-Scratch GPT vs External Baseline")
+    print("=" * 60)
+    model, tokenizer = load_or_init_pipeline(args.checkpoint, args.vocab)
+    weaver = StoryWeaver(model, tokenizer)
+
+    local_out = weaver.weave(prompt=args.prompt, max_new_tokens=args.max_tokens, temperature=args.temperature)
+    print(f"\n--- [1] From-Scratch AdventureGPT (159k params) ---")
+    print(local_out.strip())
+
+    print(f"\n--- [2] External LLM Baseline ---")
+    try:
+        base, key, model_name = llm.settings()
+        if model_name:
+            reply = llm.chat(
+                [{"role": "user", "content": f"Continue this fantasy adventure story in 2 sentences: {args.prompt}"}],
+                max_tokens=args.max_tokens,
+            )
+            print(f"Model ({model_name}): {reply.strip()}")
+        else:
+            print("No LLM_MODEL defined in .env. (Set LLM_MODEL, LLM_API_KEY in .env to call Gemini/Groq/Ollama).")
+    except Exception as e:
+        print(f"External LLM call skipped: {e}")
+    print("=" * 60 + "\n")
 
 
 def cmd_inspect_tokens(args: argparse.Namespace) -> None:
@@ -229,11 +300,22 @@ def main(argv: list[str] | None = None) -> None:
     play_parser.add_argument("--checkpoint", type=str, default=str(DEFAULT_CHECKPOINT), help="Checkpoint path")
     play_parser.add_argument("--vocab", type=str, default=str(DEFAULT_VOCAB), help="Vocabulary path")
 
-    # 5. Inspect tokens
+    # 5. History (Persistent Store)
+    sub.add_parser("history", help="view history of generated adventure segments")
+
+    # 6. Compare (Local GPT vs External LLM baseline)
+    comp_parser = sub.add_parser("compare", help="compare local GPT output with external LLM")
+    comp_parser.add_argument("--prompt", "-p", type=str, default="You approach the dark dragon altar.", help="Seed prompt")
+    comp_parser.add_argument("--max-tokens", "-n", type=int, default=80, help="Max tokens to generate")
+    comp_parser.add_argument("--temperature", "-t", type=float, default=0.8, help="Temperature")
+    comp_parser.add_argument("--checkpoint", type=str, default=str(DEFAULT_CHECKPOINT), help="Weights")
+    comp_parser.add_argument("--vocab", type=str, default=str(DEFAULT_VOCAB), help="Vocab")
+
+    # 7. Inspect tokens
     tok_parser = sub.add_parser("inspect-tokens", help="visualize BPE token breakdown")
     tok_parser.add_argument("text", type=str, help="Text to tokenize")
 
-    # 6. Stats
+    # 8. Stats
     stats_parser = sub.add_parser("stats", help="view dataset statistics")
     stats_parser.add_argument("--corpus", type=str, default=None, help="Corpus path")
 
@@ -247,6 +329,10 @@ def main(argv: list[str] | None = None) -> None:
         cmd_train(args)
     elif args.command == "play":
         cmd_play(args)
+    elif args.command == "history":
+        cmd_history(args)
+    elif args.command == "compare":
+        cmd_compare(args)
     elif args.command == "inspect-tokens":
         cmd_inspect_tokens(args)
     elif args.command == "stats":
