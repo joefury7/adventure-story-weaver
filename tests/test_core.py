@@ -3,11 +3,28 @@
 They start skipped. Remove the `skip` line as you work on each milestone.
 """
 import pytest
+from app.core import (
+    milestone_1,
+    milestone_2,
+    milestone_3,
+    milestone_4,
+    milestone_5,
+    milestone_6,
+)
 
 # Milestone 1: Assemble a small corpus of text from public domain adventure stories or fantasy novels.
-@pytest.mark.skip(reason="remove this line when you start milestone 1")
 def test_milestone_1():
-    raise NotImplementedError("write the test for milestone 1")
+    result = milestone_1()
+    assert isinstance(result, dict)
+    assert "clean_text" in result
+    assert "train_text" in result
+    assert "val_text" in result
+    assert "stats" in result
+    assert len(result["clean_text"]) > 1000
+    assert len(result["train_text"]) > len(result["val_text"])
+    assert result["stats"]["word_count"] > 100
+    assert "You stand before" in result["clean_text"] or "Citadel" in result["clean_text"]
+
 
 
 # Milestone 2: Implement the byte-pair tokenizer and generate embeddings from the story text.

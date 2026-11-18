@@ -8,5 +8,6 @@ __pycache__/
 .pytest_cache/
 
 # Local data
-data/
+data/*
+!data/adventure_corpus.txt
 *.db

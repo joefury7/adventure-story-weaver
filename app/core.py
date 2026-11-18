@@ -1,9 +1,23 @@
 """Your code. One stub per milestone; build them in order and keep each one small."""
 
+from app.corpus import load_raw_corpus, preprocess_text, split_corpus, get_corpus_stats
+
+
 # --- Milestone 1: Assemble a small corpus of text from public domain adventure stories or fantasy novels.
 # Hint: Corpus Preparation: Gather and preprocess your raw text data.
-def milestone_1():  # TODO(milestone 1)
-    raise NotImplementedError("TODO(milestone 1)")
+def milestone_1(corpus_path=None):
+    raw_text = load_raw_corpus(corpus_path)
+    clean_text = preprocess_text(raw_text)
+    train_text, val_text = split_corpus(clean_text, train_ratio=0.9)
+    stats = get_corpus_stats(clean_text)
+    return {
+        "raw_text": raw_text,
+        "clean_text": clean_text,
+        "train_text": train_text,
+        "val_text": val_text,
+        "stats": stats,
+    }
+
 
 
 # --- Milestone 2: Implement the byte-pair tokenizer and generate embeddings from the story text.
