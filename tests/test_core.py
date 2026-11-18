@@ -3,6 +3,7 @@
 They start skipped. Remove the `skip` line as you work on each milestone.
 """
 import pytest
+import torch
 from app.core import (
     milestone_1,
     milestone_2,
@@ -48,9 +49,25 @@ def test_milestone_2():
 
 
 # Milestone 3: Build the causal self-attention mechanism and assemble the transformer block.
-@pytest.mark.skip(reason="remove this line when you start milestone 3")
 def test_milestone_3():
-    raise NotImplementedError("write the test for milestone 3")
+    res = milestone_3(n_embd=32, n_heads=4, block_size=16)
+
+    assert "attention" in res
+    assert "transformer_block" in res
+    assert res["attn_output_shape"] == (2, 16, 32)
+    assert res["block_output_shape"] == (2, 16, 32)
+    assert res["attention_weights_shape"] == (2, 4, 16, 16)
+    assert res["is_causal"] is True
+
+    # Test residual gradient flow
+    block = res["transformer_block"]
+    x = torch.randn(2, 16, 32, requires_grad=True)
+    out = block(x)
+    loss = out.sum()
+    loss.backward()
+    assert x.grad is not None
+    assert not torch.all(x.grad == 0)
+
 
 
 # Milestone 4: Set up the training loop and train the GPT model on the narrative data.

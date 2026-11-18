@@ -48,10 +48,32 @@ def milestone_2(sample_text: str | None = None, num_merges: int = 20, n_embd: in
     }
 
 
+from app.transformer import CausalSelfAttention, TransformerBlock, AdventureGPT
+
+
 # --- Milestone 3: Build the causal self-attention mechanism and assemble the transformer block.
 # Hint: Causal Self-Attention: Implement the masked attention mechanism and build a transformer block.
-def milestone_3():  # TODO(milestone 3)
-    raise NotImplementedError("TODO(milestone 3)")
+def milestone_3(n_embd: int = 32, n_heads: int = 4, block_size: int = 16):
+    attn = CausalSelfAttention(n_embd=n_embd, n_heads=n_heads, block_size=block_size)
+    block = TransformerBlock(n_embd=n_embd, n_heads=n_heads, block_size=block_size)
+
+    dummy_x = torch.randn(2, block_size, n_embd)
+    attn_out, weights = attn(dummy_x, return_attention_weights=True)
+    block_out = block(dummy_x)
+
+    # Upper triangle above diagonal must be 0 in causal attention weights
+    upper_tri = torch.triu(weights[0, 0], diagonal=1)
+    is_causal = bool(torch.all(upper_tri == 0).item())
+
+    return {
+        "attention": attn,
+        "transformer_block": block,
+        "attn_output_shape": tuple(attn_out.shape),
+        "block_output_shape": tuple(block_out.shape),
+        "attention_weights_shape": tuple(weights.shape),
+        "is_causal": is_causal,
+    }
+
 
 
 # --- Milestone 4: Set up the training loop and train the GPT model on the narrative data.
