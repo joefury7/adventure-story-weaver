@@ -71,9 +71,29 @@ def test_milestone_3():
 
 
 # Milestone 4: Set up the training loop and train the GPT model on the narrative data.
-@pytest.mark.skip(reason="remove this line when you start milestone 4")
-def test_milestone_4():
-    raise NotImplementedError("write the test for milestone 4")
+def test_milestone_4(tmp_path):
+    res = milestone_4(max_iters=5, batch_size=4, n_embd=32, block_size=16)
+
+    assert "model" in res
+    assert "tokenizer" in res
+    assert "initial_loss" in res
+    assert "final_loss" in res
+    assert "history" in res
+
+    assert res["initial_loss"] > 0.0
+    assert res["final_loss"] > 0.0
+    assert len(res["history"]) >= 1
+
+    # Verify model checkpointing
+    from app.train import save_checkpoint, load_checkpoint
+    ckpt_path = tmp_path / "test_gpt.pt"
+    save_checkpoint(res["model"], ckpt_path)
+    assert ckpt_path.exists()
+
+    loaded_model = load_checkpoint(ckpt_path)
+    assert loaded_model.vocab_size == res["model"].vocab_size
+    assert loaded_model.n_embd == res["model"].n_embd
+
 
 
 # Milestone 5: Implement a text generation feature that creates coherent story continuations.

@@ -76,10 +76,49 @@ def milestone_3(n_embd: int = 32, n_heads: int = 4, block_size: int = 16):
 
 
 
+from app.train import get_batch, estimate_loss, train_model, save_checkpoint, load_checkpoint
+
+
 # --- Milestone 4: Set up the training loop and train the GPT model on the narrative data.
 # Hint: Training Loop: Define the optimization process and train your GPT model.
-def milestone_4():  # TODO(milestone 4)
-    raise NotImplementedError("TODO(milestone 4)")
+def milestone_4(max_iters: int = 10, batch_size: int = 8, n_embd: int = 32, block_size: int = 16):
+    corpus_info = milestone_1()
+    train_text = corpus_info["train_text"][:3000]
+    val_text = corpus_info["val_text"][:800]
+
+    tokenizer = BPETokenizer().train(train_text, num_merges=10)
+    train_ids = torch.tensor(tokenizer.encode(train_text), dtype=torch.long)
+    val_ids = torch.tensor(tokenizer.encode(val_text), dtype=torch.long)
+
+    model = AdventureGPT(
+        vocab_size=tokenizer.vocab_size,
+        block_size=block_size,
+        n_embd=n_embd,
+        n_heads=2,
+        n_layers=2,
+    )
+
+    initial_loss_dict = estimate_loss(model, train_ids, val_ids, block_size=block_size, batch_size=batch_size, eval_iters=3)
+    train_result = train_model(
+        model,
+        train_ids,
+        val_ids,
+        max_iters=max_iters,
+        lr=3e-3,
+        eval_interval=max(1, max_iters // 2),
+        batch_size=batch_size,
+        verbose=False,
+    )
+
+    return {
+        "model": model,
+        "tokenizer": tokenizer,
+        "initial_loss": initial_loss_dict["train"],
+        "final_loss": train_result["final_train_loss"],
+        "history": train_result["history"],
+        "iterations": max_iters,
+    }
+
 
 
 # --- Milestone 5: Implement a text generation feature that creates coherent story continuations.
